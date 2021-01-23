@@ -25,7 +25,7 @@ data = quote.filter(['Close'])
 #Convert to Numpy array
 dataset = data.values
 #Get # of rows to train model on
-training_data_len = len(dataset)
+training_data_len = math.ceil(len(dataset) * .8)
 
 print(training_data_len);
 
@@ -70,7 +70,6 @@ print(np.mean(y_train))
 #Reshape the data
 #LSTM Network expects 3D input
 #, # of samples (rows), # of time steps (columns), # of Features (close option), current set is 2D
-print(x_train.shape)
 x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 print(x_train.shape)
 
@@ -84,3 +83,35 @@ model.add(LSTM(50, return_sequences=False))
 model.add(Dense(25))
 model.add(Dense(1))
 print(model)
+
+#Compiling model
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+#train the model fit = train
+#epoch # of iterations when dataset is passed forward and backwards through network
+model.fit(x_train, y_train, batch_size=1, epochs=1)
+
+#Create the testing dataset
+#Create a new array from index 2195 to 2265
+test_data = scaled_data[training_data_len - 70: , :]
+print(len(test_data))
+#create data sets x_test and y_test
+x_test = []
+#y_test = all values we want model to predict
+y_test = dataset[training_data_len:, :]
+for i in range (70, len(test_data)):
+    x_test.append(test_data[i-70:i, 0])
+
+#Convert data to numpy arrays to use in LSTM
+x_test = np.array(x_test)
+#Reshape to 3D for LSTM Model
+x_test = np.reshape(x_test, (x_test.shape[0], x_test.shape[1], 1))
+
+#get the prediction values
+predictions = model.predict(x_test)
+#inverse transform ("unscales values") should be the same as y-values
+predictions = scaler.inverse_transform(predictions)
+
+#Get the root mean squared error -- standard deviation of residual (** = ^)
+rmse = np.sqrt(np.mean(predictions - y_test)**2)
+print(rmse)

@@ -5,6 +5,8 @@ import pandas as pd
 from sklearn import linear_model
 from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
+from keras.models import Sequential
+from keras.layers import Dense, LSTM
 
 #stock quote
 quote = web.DataReader('TSLA', data_source='yahoo', start='2012-01-01', end="2021-01-01")
@@ -20,7 +22,7 @@ plt.ylabel('Price')
 
 #Dataframe with only Close
 data = quote.filter(['Close'])
-#Conver to Numpy array
+#Convert to Numpy array
 dataset = data.values
 #Get # of rows to train model on
 training_data_len = len(dataset)
@@ -71,3 +73,14 @@ print(np.mean(y_train))
 print(x_train.shape)
 x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))
 print(x_train.shape)
+
+#Builds LSTM Model
+model = Sequential()
+#50 Neurons, first layers so return is true, shape is time steps, features
+model.add(LSTM(50, return_sequences=True, input_shape= (x_train.shape[1], 1)))
+#second layers
+model.add(LSTM(50, return_sequences=False))
+#adding densely connected neural network w/ 25 neurons
+model.add(Dense(25))
+model.add(Dense(1))
+print(model)

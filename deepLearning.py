@@ -9,7 +9,7 @@ from keras.models import Sequential
 from keras.layers import Dense, LSTM
 
 #stock quote
-quote = web.DataReader('TSLA', data_source='yahoo', start='2012-01-01', end="2021-01-01")
+quote = web.DataReader('AAPL', data_source='yahoo', start='2012-01-01', end="2021-01-01")
 
 print(quote)
 print(quote.shape)
@@ -34,12 +34,10 @@ print(training_data_len);
 scaler = MinMaxScaler(feature_range=(0,1))
 #hold new "scaled dataset"
 scaled_data = scaler.fit_transform(dataset)
-print(scaled_data)
 
 #create the "training data set"
 #Create the scaled trained dataset
 train_data = scaled_data[0:training_data_len, :]
-print(train_data)
 #Split the data into x_train and y_train
 #x_train, all values prior to 'y'
 x_train = []
@@ -55,17 +53,11 @@ for i in range(70, training_data_len):
     x_train.append(train_data[i-70:i, 0])
     #only gets i
     y_train.append(train_data[i, 0])
-    if i <= 71:
-        print(i);
-        print(x_train)
-        print(y_train)
 
 
 #convert x_train and y_train to numpy arrays
 x_train = np.array(x_train)
 y_train = np.array(y_train)
-print(np.mean(x_train))
-print(np.mean(y_train))
 
 #Reshape the data
 #LSTM Network expects 3D input
@@ -92,7 +84,7 @@ model.compile(optimizer='adam', loss='mean_squared_error')
 model.fit(x_train, y_train, batch_size=1, epochs=1)
 
 #Create the testing dataset
-#Create a new array from index 2195 to 2265
+#Create a new array from index 1742 to 2265
 test_data = scaled_data[training_data_len - 70: , :]
 print(len(test_data))
 #create data sets x_test and y_test
@@ -113,5 +105,61 @@ predictions = model.predict(x_test)
 predictions = scaler.inverse_transform(predictions)
 
 #Get the root mean squared error -- standard deviation of residual (** = ^)
-rmse = np.sqrt(np.mean(predictions - y_test)**2)
+rmse = np.sqrt(np.mean(((predictions - y_test)**2)))
 print(rmse)
+
+#Plotting data
+train = data[:training_data_len]
+valid = data[training_data_len:]
+valid['Predictions'] = predictions
+
+#Visualize model compares actual data to predicted
+plt.figure(figsize=(16,8))
+plt.title('Predictions Model')
+plt.xlabel('Date')
+plt.ylabel('Close Price')
+plt.plot(train['Close'])
+plt.plot(valid[['Close',  'Predictions']])
+plt.legend(['Train', 'Val', 'Predictions'], loc='lower right');
+plt.show()
+
+endDate = "2021-01-"
+endDateDay = 4
+if (endDateDay < 10) :
+    endDateDay = '0' + str(endDateDay)
+endDateFirst = endDate + str(endDateDay)
+endDateDay = endDateDay + 1;
+if (endDateDay < 10) :
+    endDateDay = '0' + endDateDay
+endDateLast = endDate + str(endDateDay)
+print(endDateFirst)
+print(endDateLast)
+#show valid and predicted prices
+#Get quote for predictions furhter into the future
+apple_quote = web.DataReader('AAPL', data_source='yahoo', start='2012-01-01', end=endDate)
+#New dataframe
+new_df = apple_quote.filter(['Close'])
+#Get the last 70 days and convert dataframe to array
+last_60_days = new_df[-60:].values
+#Scale data, no need for fit_transform as we have same MinMax
+last_60_days_scaled = scaler.transform(last_60_days)
+#Create empty list
+X_test = []
+#Append past 60 days to list
+X_test.append(last_60_days_scaled)
+#Convert X_test to a numpy array
+X_test = np.array(X_test)
+#Reshape
+x_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+#Getting predicted scale price
+pred_price = model.predict(X_test)
+#undo scaling
+pred_price = scaler.inverse_transform(pred_price)
+#predicted price
+print("predicted price")
+print(pred_price)
+#get actual price
+apple_quote2 = web.DataReader('AAPL', data_source='yahoo', start='2021-01-05', end="2021-01-5")
+print(apple_quote2['Close'])
+apple_quote3 = web.DataReader('AAPL', data_source='yahoo', start=endDate, end=endDate)
+print(apple_quote3['Close'])
